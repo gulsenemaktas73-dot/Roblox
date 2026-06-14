@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOBLOX</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background: linear-gradient(180deg, #00a2ff, #0066cc); overflow: hidden; }
+        
+        .screen { display: none; width: 100vw; height: 100vh; align-items: center; justify-content: center; }
+        .screen.active { display: flex; }
+        
+        .box { background: white; padding: 40px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .box h1 { text-align: center; color: #00a2ff; font-size: 42px; margin-bottom: 10px; }
+        .box .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 30px; }
+        
+        .field { margin-bottom: 25px; }
+        .field label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
+        .field input { width: 100%; padding: 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; }
+        .field input:focus { outline: none; border-color: #00a2ff; }
+        .hint { color: #999; font-size: 12px; margin-top: 5px; }
+        
+        .btn { width: 100%; padding: 16px; background: #00a2ff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .btn:active:not(:disabled) { transform: scale(0.98); }
+        
+        #menuScreen { flex-direction: column; background: #2c2e36; height: 100vh; overflow: hidden; }
+        .top-section { background: #393b44; padding: 30px 20px; text-align: center; border-bottom: 3px solid #00a2ff; }
+        .avatar { width: 100px; height: 100px; background: linear-gradient(135deg, #00a2ff, #0066cc); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 50px; }
+        .username { color: white; font-size: 24px; font-weight: bold; margin-bottom: 15px; }
+        .profile-btn { background: #00a2ff; color: white; border: none; padding: 10px 25px; border-radius: 20px; font-weight: bold; cursor: pointer; margin: 5px; -webkit-tap-highlight-color: transparent; }
+        .profile-btn:active { transform: scale(0.95); }
+        
+        .games-section { flex: 1; overflow-y: scroll; -webkit-overflow-scrolling: touch; padding: 20px; padding-bottom: 60px; height: calc(100vh - 280px); }
+        .section-title { color: white; font-size: 22px; font-weight: bold; margin-bottom: 15px; }
+        .games-grid { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        .game-card { background: #393b44; border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.2s; display: flex; margin-bottom: 10px; border: 2px solid transparent; }
+        .game-card:active { transform: scale(0.98); border-color: #00a2ff; }
+        .game-thumb { width: 120px; height: 120px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 50px; flex-shrink: 0; }
+        .game-info { padding: 15px; flex: 1; }
+        .game-name { color: white; font-weight: bold; font-size: 16px; margin-bottom: 8px; }
+        .game-stats { color: #999; font-size: 12px; margin-bottom: 10px; }
+        .play-btn { padding: 8px 20px; background: #00c74d; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        
+        #gameDetailScreen { background: #2c2e36; flex-direction: column; }
+        .game-header { background: #393b44; padding: 20px; width: 100%; }
+        .back-btn { background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+        .game-detail-thumb { height: 200px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 80px; border-radius: 10px; margin-bottom: 20px; }
+        .game-detail-name { color: white; font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+        .start-btn { width: 100%; padding: 16px; background: #00c74d; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        
+        #gameScreen { background: #000; position: relative; }
+        #gameCanvas { width: 100%; height: 100%; }
+        .game-ui { position: absolute; top: 20px; left: 20px; color: white; z-index: 10; }
+        .exit-btn { position: absolute; top: 20px; right: 20px; background: #ff4757; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; z-index: 10; }
+        .countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; color: white; font-weight: bold; display: none; z-index: 20; text-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        
+        .mobile-controls { display: none; position: absolute; bottom: 20px; width: 100%; padding: 0 20px; justify-content: space-between; z-index: 10; }
+        .joystick { width: 110px; height: 110px; background: rgba(255,255,255,0.2); border-radius: 50%; position: relative; }
+        .joystick-stick { width: 45px; height: 45px; background: rgba(255,255,255,0.8); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .jump-btn { width: 70px; height: 70px; background: rgba(0,162,255,0.8); border-radius: 50%; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        
+        @media (max-width: 768px) { .mobile-controls { display: flex; } }
+    </style>
+</head>
+<body>
+    <!-- EKRAN 1: İSİM -->
+    <div class="screen active" id="screen1">
+        <div class="box">
+            <h1>🎮 KOBLOX</h1>
+            <p class="subtitle">Hoş geldin! Hadi başlayalım</p>
+            <div class="field">
+                <label>Kullanıcı Adın Nedir?</label>
+                <input type="text" id="name" placeholder="İsim gir">
+                <p class="hint">Gerçek adını kullanma</p>
+            </div>
+            <button class="btn" id="btn1" disabled>Devam Et</button>
+        </div>
+    </div>
+
+    <!-- EKRAN 2: DOĞUM TARİHİ -->
+    <div class="screen" id="screen2">
+        <div class="box">
+            <h1>📅 Doğum Tarihin</h1>
+            <p class="subtitle">Ne zaman doğdun?</p>
+            <div class="field">
+                <label>Doğum Tarihi</label>
+                <input type="text" id="birth" placeholder="15/06/2010">
+                <p class="hint">GG/AA/YYYY formatında</p>
+            </div>
+            <button class="btn" id="btn2" disabled>Devam Et</button>
+        </div>
+    </div>
+
+    <!-- EKRAN 3: ŞİFRE -->
+    <div class="screen" id="screen3">
+        <div class="box">
+            <h1>🔒 Şifre Belirle</h1>
+            <p class="subtitle">Hesap şifren ne olsun?</p>
+            <div class="field">
+                <label>Şifren Nedir?</label>
+                <input type="password" id="pass" placeholder="Örnek: 12345">
+                <p class="hint">En az 4 karakter</p>
+            </div>
+            <button class="btn" id="btn3" disabled>Onayla</button>
+        </div>
+    </div>
+
+    <!-- ANA MENÜ -->
+    <div class="screen" id="menuScreen">
+        <div class="top-section">
+            <div class="avatar">👤</div>
+            <div class="username" id="displayName">Oyuncu</div>
+            <button class="profile-btn" id="profileBtn">👤 Profil</button>
+            <button class="profile-btn" id="friendBtn">➕ Arkadaş Ekle</button>
+            <button class="profile-btn" id="settingsBtn">⚙️ Ayarlar</button>
+        </div>
+        <div class="games-section">
+            <div class="section-title">🔥 Popüler Oyunlar</div>
+            <div class="games-grid" id="gamesGrid"></div>
+        </div>
+    </div>
+
+    <!-- OYUN DETAY -->
+    <div class="screen" id="gameDetailScreen">
+        <div class="game-header">
+            <button class="back-btn" id="backToMenu">◀ Geri</button>
+            <div class="game-detail-thumb" id="detailThumb">🎮</div>
+            <div class="game-detail-name" id="detailName">Oyun</div>
+            <div class="game-stats">👍 98% | 👥 50K oyuncu</div>
+            <button class="start-btn" id="startGameBtn">OYUNA GİR</button>
+        </div>
+    </div>
+
+    <!-- OYUN EKRANI -->
+    <div class="screen" id="gameScreen">
+        <canvas id="gameCanvas"></canvas>
+        <div class="game-ui" id="gameInfo">Yükleniyor...</div>
+        <button class="exit-btn" id="exitBtn">ÇIK</button>
+        <div class="countdown" id="countdown"></div>
+        <div class="mobile-controls">
+            <div class="joystick" id="joy">
+                <div class="joystick-stick" id="stick"></div>
+            </div>
+            <div class="jump-btn" id="jump">ZIPLA</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let user = {};
+        let currentGameData = null;
+
+        function show(id) {
+            console.log('Ekran değiştiriliyor:', id);
+            document.querySelectorAll('.screen').forEach(s => {
+                s.classList.remove('active');
+                s.style.display = 'none';
+            });
+            const screen = document.getElementById(id);
+            screen.classList.add('active');
+            screen.style.display = 'flex';
+            console.log('Yeni ekran gösteriliyor:', id);
+        }
+
+        // EKRAN 1
+        const nameInput = document.getElementById('name');
+        const btn1 = document.getElementById('btn1');
+        nameInput.addEventListener('input', () => {
+            btn1.disabled = !nameInput.value.trim();
+        });
+        btn1.addEventListener('click', () => {
+            user.name = nameInput.value.trim();
+            show('screen2');
+        });
+
+        // EKRAN 2
+        const birthInput = document.getElementById('birth');
+        const btn2 = document.getElementById('btn2');
+        birthInput.addEventListener('input', () => {
+            btn2.disabled = !birthInput.value.trim();
+        });
+        btn2.addEventListener('click', () => {
+            user.birth = birthInput.value.trim();
+            show('screen3');
+        });
+
+        // EKRAN 3
+        const passInput = document.getElementById('pass');
+        const btn3 = document.getElementById('btn3');
+        passInput.addEventListener('input', () => {
+            btn3.disabled = passInput.value.length < 4;
+        });
+        btn3.addEventListener('click', () => {
+            user.pass = passInput.value;
+            document.getElementById('displayName').textContent = user.name;
+            console.log('Ana menüye gidiliyor...');
+            setTimeout(() => {
+                loadGames();
+                show('menuScreen');
+            }, 100);
+        });
+
+        // OYUNLAR
+        const games = [
+            {n:'Süper Kahraman Simulator',e:'🦸',t:'superhero'},
+            {n:'Katil Kim?',e:'🔪',t:'murder'},
+            {n:'Şehir Roleplay',e:'🏘️',t:'roleplay'},
+            {n:'Korku Evi',e:'👻',t:'horror'},
+            {n:'Lanetli Okul',e:'🏚️',t:'horror'},
+            {n:'Karanlık Orman',e:'🌲',t:'horror'},
+            {n:'Zombi Kıyameti',e:'🧟',t:'horror'},
+            {n:'Matematik Ustası',e:'➗',t:'math'},
+            {n:'Toplama Yarışması',e:'➕',t:'math'},
+            {n:'Çarpım Tablosu',e:'✖️',t:'math'},
+            {n:'Bilgi Yarışması',e:'🎯',t:'quiz'},
+            {n:'Logo Tahmin',e:'🏷️',t:'quiz'},
+            {n:'Araba Yarışı',e:'🏎️',t:'race'},
+            {n:'Süper Hız',e:'🏁',t:'race'},
+            {n:'Doğru Cevap Bul',e:'✅',t:'quiz'},
+            {n:'Test Zamanı',e:'📝',t:'quiz'}
+        ];
+
+        function loadGames() {
+            const grid = document.getElementById('gamesGrid');
+            grid.innerHTML = games.map((g,i) => 
+                `<div class="game-card">
+                    <div class="game-thumb">${g.e}</div>
+                    <div class="game-info">
+                        <div class="game-name">${g.n}</div>
+                        <div class="game-stats">👍 ${90+Math.floor(Math.random()*10)}% | 👥 ${Math.floor(Math.random()*150)+10}K</div>
+                        <button class="play-btn" data-game="${i}">OYNA</button>
+                    </div>
+                </div>`
+            ).join('');
+            
+            // Butonlara tıklama ekle
+            grid.querySelectorAll('.play-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const gameIndex = parseInt(btn.dataset.game);
+                    openGame(gameIndex);
+                });
+            });
+            
+            // Kartlara tıklama ekle
+            grid.querySelectorAll('.game-card').forEach((card, i) => {
+                card.addEventListener('click', () => {
+                    openGame(i);
+                });
+            });
+        }
+
+        function openGame(i) {
+            console.log('Oyun açılıyor:', i);
+            currentGameData = games[i];
+            document.getElementById('detailThumb').textContent = currentGameData.e;
+            document.getElementById('detailName').textContent = currentGameData.n;
+            show('gameDetailScreen');
+        }
+
+        document.getElementById('backToMenu').addEventListener('click', (e) => {
+            e.preventDefault();
+            show('menuScreen');
+        });
+
+        document.getElementById('startGameBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            show('gameScreen');
+            startCountdown();
+        });
+
+        document.getElementById('exitBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (gameLoop) cancelAnimationFrame(gameLoop);
+            show('menuScreen');
+        });
+
+        // GERİ SAYIM
+        function startCountdown() {
+            const cd = document.getElementById('countdown');
+            cd.style.display = 'block';
+            let c = 10;
+            cd.textContent = `${c} saniye`;
+            
+            const timer = setInterval(() => {
+                c--;
+                if (c > 0) {
+                    cd.textContent = `${c} saniye`;
+                } else {
+                    cd.textContent = 'BAŞLIYOR!';
+                    setTimeout(() => {
+                        cd.style.display = 'none';
+                        clearInterval(timer);
+                        init3D();
+                    }, 1000);
+                }
+            }, 1000);
+        }
+
+        // 3D OYUN
+        let scene, camera, renderer, player, gameLoop;
+        const keys = {};
+        let joyDir = {x:0, y:0};
+        let mathQuestions = [];
+        let currentQuestion = 0;
+        let score = 0;
+
+        function init3D() {
+            const gameType = currentGameData.t;
+            
+            // MATEMATİK OYUNLARI - 3D YOK
+            if (gameType === 'math' || gameType === 'quiz') {
+                startMathGame();
+                return;
+            }
+            
+            // DİĞER OYUNLAR - 3D
+            const canvas = document.getElementById('gameCanvas');
+            scene = new THREE.Scene();
+            
+            // OYUNA GÖRE ARKA PLAN
+            if (gameType === 'horror') {
+                scene.background = new THREE.Color(0x1a1a1a); // Karanlık
+                scene.fog = new THREE.Fog(0x1a1a1a, 5, 30);
+            } else {
+                scene.background = new THREE.Color(0x87CEEB);
+            }
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+            renderer = new THREE.WebGLRenderer({canvas});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const light = new THREE.AmbientLight(0xffffff, gameType === 'horror' ? 0.3 : 0.6);
+            scene.add(light);
+
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(200, 200),
+                new THREE.MeshStandardMaterial({color: gameType === 'horror' ? 0x0a3a0a : 0x228B22})
+            );
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+
+            player = new THREE.Mesh(
+                new THREE.BoxGeometry(1, 2, 1),
+                new THREE.MeshStandardMaterial({color: 0xFF6B6B})
+            );
+            player.position.y = 1;
+            scene.add(player);
+
+            // OYUNA GÖRE SEVİYE
+            createLevelByType(gameType);
+
+            setupControls();
+            document.getElementById('gameInfo').textContent = `${currentGameData.n} | WASD: Hareket | Space: Zıpla`;
+            animate();
+        }
+
+        function createLevelByType(type) {
+            if (type === 'superhero') {
+                // SÜPER KAHRAMAN - Yüksek binalar
+                for (let i = 0; i < 10; i++) {
+                    const building = new THREE.Mesh(
+                        new THREE.BoxGeometry(8, 20 + Math.random()*20, 8),
+                        new THREE.MeshStandardMaterial({color: 0x666666})
+                    );
+                    building.position.set((Math.random()-0.5)*80, 20, (Math.random()-0.5)*80);
+                    scene.add(building);
+                }
+            } else if (type === 'murder') {
+                // KATİL KİM - Labirent
+                for (let i = 0; i < 20; i++) {
+                    const wall = new THREE.Mesh(
+                        new THREE.BoxGeometry(10, 3, 1),
+                        new THREE.MeshStandardMaterial({color: 0x8B4513})
+                    );
+                    wall.position.set((Math.random()-0.5)*50, 1.5, (Math.random()-0.5)*50);
+                    wall.rotation.y = Math.random() * Math.PI;
+                    scene.add(wall);
+                }
+                // Katil (kırmızı küp)
+                const killer = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.5, 2, 1.5),
+                    new THREE.MeshStandardMaterial({color: 0xFF0000})
+                );
+                killer.position.set(20, 1, 20);
+                scene.add(killer);
+            } else if (type === 'roleplay') {
+                // RP - Şehir
+                for (let i = 0; i < 15; i++) {
+                    const house = new THREE.Mesh(
+                        new THREE.BoxGeometry(6, 4, 6),
+                        new THREE.MeshStandardMaterial({color: [0x8B4513, 0xA0522D, 0xCD853F][i%3]})
+                    );
+                    house.position.set((i%5)*15-30, 2, Math.floor(i/5)*15-15);
+                    scene.add(house);
+                }
+            } else if (type === 'horror') {
+                // KORKU - Karanlık orman
+                for (let i = 0; i < 30; i++) {
+                    const tree = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.5, 0.7, 8),
+                        new THREE.MeshStandardMaterial({color: 0x2d1f0e})
+                    );
+                    tree.position.set((Math.random()-0.5)*60, 4, (Math.random()-0.5)*60);
+                    scene.add(tree);
+                }
+            } else if (type === 'race') {
+                // ARABA YARIŞI - Pist
+                const track = new THREE.Mesh(
+                    new THREE.PlaneGeometry(20, 200),
+                    new THREE.MeshStandardMaterial({color: 0x333333})
+                );
+                track.rotation.x = -Math.PI / 2;
+                track.position.z = -100;
+                track.position.y = 0.01;
+                scene.add(track);
+                
+                for (let i = 0; i < 10; i++) {
+                    const obstacle = new THREE.Mesh(
+                        new THREE.BoxGeometry(3, 1, 3),
+                        new THREE.MeshStandardMaterial({color: 0xFF0000})
+                    );
+                    obstacle.position.set((Math.random()-0.5)*15, 0.5, -i*20-10);
+                    scene.add(obstacle);
+                }
+            } else {
+                // PARKUR - Platformlar
+                for (let i = 1; i < 15; i++) {
+                    const box = new THREE.Mesh(
+                        new THREE.BoxGeometry(3, 0.5, 3),
+                        new THREE.MeshStandardMaterial({color: [0xFFD700,0xFF6B6B,0x4ECDC4][i%3]})
+                    );
+                    box.position.set((Math.random()-0.5)*20, i*2, -i*5);
+                    scene.add(box);
+                }
+            }
+        }
+
+        // MATEMATİK OYUNU
+        function startMathGame() {
+            document.getElementById('gameCanvas').style.display = 'none';
+            const info = document.getElementById('gameInfo');
+            info.style.fontSize = '24px';
+            info.style.top = '50%';
+            info.style.left = '50%';
+            info.style.transform = 'translate(-50%, -50%)';
+            info.style.background = 'rgba(0,0,0,0.8)';
+            info.style.padding = '30px';
+            info.style.borderRadius = '15px';
+            info.style.textAlign = 'center';
+            info.style.width = '80%';
+            info.style.maxWidth = '500px';
+            
+            // 10 SORU OLUŞTUR
+            mathQuestions = [];
+            for (let i = 0; i < 10; i++) {
+                const a = Math.floor(Math.random() * 50) + 1;
+                const b = Math.floor(Math.random() * 50) + 1;
+                const ops = ['+', '-', '×'];
+                const op = ops[Math.floor(Math.random() * ops.length)];
+                let answer;
+                if (op === '+') answer = a + b;
+                else if (op === '-') answer = a - b;
+                else answer = a * b;
+                
+                mathQuestions.push({q: `${a} ${op} ${b}`, a: answer});
+            }
+            
+            currentQuestion = 0;
+            score = 0;
+            showMathQuestion();
+        }
+
+        function showMathQuestion() {
+            if (currentQuestion >= 10) {
+                document.getElementById('gameInfo').innerHTML = `
+                    <div style="color: white;">
+                        <h2>OYUN BİTTİ!</h2>
+                        <p style="font-size: 48px; margin: 20px 0;">🎉</p>
+                        <p>Skor: ${score}/10</p>
+                        <p style="font-size: 16px; margin-top: 20px;">Tebrikler! ${score >= 7 ? 'Harika!' : 'İyi!'}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const q = mathQuestions[currentQuestion];
+            document.getElementById('gameInfo').innerHTML = `
+                <div style="color: white;">
+                    <p style="font-size: 18px;">Soru ${currentQuestion + 1}/10</p>
+                    <h2 style="font-size: 36px; margin: 20px 0;">${q.q} = ?</h2>
+                    <input type="number" id="mathAnswer" style="font-size: 24px; padding: 10px; width: 150px; text-align: center; border-radius: 8px; border: 2px solid #00a2ff;" autofocus>
+                    <br><br>
+                    <button onclick="checkMathAnswer()" style="background: #00c74d; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer;">CEVAPLA</button>
+                    <p style="margin-top: 15px; font-size: 16px;">Skor: ${score}</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const input = document.getElementById('mathAnswer');
+                if (input) {
+                    input.focus();
+                    input.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') checkMathAnswer();
+                    });
+                }
+            }, 100);
+        }
+
+        function checkMathAnswer() {
+            const input = document.getElementById('mathAnswer');
+            if (!input) return;
+            
+            const userAnswer = parseInt(input.value);
+            const correctAnswer = mathQuestions[currentQuestion].a;
+            
+            if (userAnswer === correctAnswer) {
+                score++;
+            }
+            
+            currentQuestion++;
+            showMathQuestion();
+        }
+
+        function setupControls() {
+            window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+            window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+            const joy = document.getElementById('joy');
+            const stick = document.getElementById('stick');
+            let ja = false;
+
+            joy.addEventListener('touchstart', e => {
+                ja = true;
+                updateJoy(e.touches[0]);
+            });
+            joy.addEventListener('touchmove', e => {
+                e.preventDefault();
+                if (ja) updateJoy(e.touches[0]);
+            });
+            joy.addEventListener('touchend', () => {
+                ja = false;
+                joyDir = {x:0, y:0};
+                stick.style.transform = 'translate(-50%, -50%)';
+            });
+
+            function updateJoy(t) {
+                const r = joy.getBoundingClientRect();
+                const cx = r.left + r.width/2;
+                const cy = r.top + r.height/2;
+                let dx = t.clientX - cx;
+                let dy = t.clientY - cy;
+                const d = Math.sqrt(dx*dx + dy*dy);
+                const m = 32;
+                if (d > m) {
+                    dx = (dx/d) * m;
+                    dy = (dy/d) * m;
+                }
+                stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                joyDir.x = dx/m;
+                joyDir.y = dy/m;
+            }
+
+            document.getElementById('jump').addEventListener('touchstart', e => {
+                e.preventDefault();
+                keys[' '] = true;
+            });
+            document.getElementById('jump').addEventListener('touchend', e => {
+                e.preventDefault();
+                keys[' '] = false;
+            });
+        }
+
+        let vel = {x:0, y:0, z:0};
+        const spd = 0.15;
+        const jmp = 0.35;
+        let onGround = true;
+
+        function animate() {
+            gameLoop = requestAnimationFrame(animate);
+
+            vel.x = 0;
+            vel.z = 0;
+
+            if (keys['w'] || joyDir.y < -0.1) vel.z = -spd;
+            if (keys['s'] || joyDir.y > 0.1) vel.z = spd;
+            if (keys['a'] || joyDir.x < -0.1) vel.x = -spd;
+            if (keys['d'] || joyDir.x > 0.1) vel.x = spd;
+
+            if (keys[' '] && onGround) {
+                vel.y = jmp;
+                onGround = false;
+            }
+
+            vel.y -= 0.015;
+            player.position.y += vel.y;
+
+            if (player.position.y <= 1) {
+                player.position.y = 1;
+                vel.y = 0;
+                onGround = true;
+            }
+
+            player.position.x += vel.x;
+            player.position.z += vel.z;
+
+            camera.position.x = player.position.x;
+            camera.position.y = player.position.y + 4;
+            camera.position.z = player.position.z + 10;
+            camera.lookAt(player.position);
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+          </html>
